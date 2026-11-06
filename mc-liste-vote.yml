@@ -1,0 +1,58 @@
+name: Daily MC-Liste Vote
+
+on:
+  schedule:
+    # GitHub-Cron kennt nur UTC. Deshalb zwei Einträge für Sommer-/Winterzeit:
+    # Pro Jahreszeit passt genau einer zu 23:40 Uhr Ortszeit (Europe/Zurich), der andere
+    # beendet sich im Script sofort. Danach wartet das Script bis zu einem Zufallszeitpunkt
+    # zwischen 00:05 und 00:25 Uhr und votet dann.
+    - cron: "40 21 * * *"   # Sommerzeit (CEST, UTC+2)
+    - cron: "40 22 * * *"   # Winterzeit (CET, UTC+1)
+  workflow_dispatch:         # manueller Start: votet sofort, ohne Wartezeit
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mc-liste-vote
+  cancel-in-progress: false
+
+jobs:
+  vote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60      # Wartezeit (max. ~45 Min) + Vote
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Abhängigkeiten installieren
+        run: pip install -r requirements.txt
+
+      - name: Chromium für Playwright installieren
+        run: python -m playwright install --with-deps chromium
+
+      - name: Vote ausführen
+        env:
+          LOGIN_USERNAME: ${{ secrets.LOGIN_USERNAME }}
+          LOGIN_PASSWORD: ${{ secrets.LOGIN_PASSWORD }}
+          DISCORD_WEBHOOK_LOGS: ${{ secrets.DISCORD_WEBHOOK_LOGS }}
+          DISCORD_WEBHOOK_FAIL: ${{ secrets.DISCORD_WEBHOOK_FAIL }}
+          # Funktioniert, egal ob als Repository-Variable oder als Secret angelegt
+          DISCORD_PING_ID: ${{ vars.DISCORD_PING_ID || secrets.DISCORD_PING_ID }}
+          CRON_SCHEDULE: ${{ github.event.schedule }}
+        run: python vote.py
+
+      - name: Screenshot bei Fehler hochladen
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vote-debug
+          path: debug/
+          if-no-files-found: ignore
+          retention-days: 3
