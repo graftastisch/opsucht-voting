@@ -293,6 +293,23 @@ def notify_failure(reason: str) -> None:
         components=True,
     )
 
+def notify_success(result: str) -> None:
+    now = datetime.now(TZ).strftime("%d.%m.%Y %H:%M:%S")
+
+    post_webhook(
+        os.environ.get("DISCORD_WEBHOOK_LOGS", "").strip(),
+        {
+            "content": (
+                f"**Minecraft-Voting erfolgreich** ({now})\n"
+                f"Username: `{VOTE_USERNAME}`\n"
+                f"Status: Vote erfolgreich abgeschickt.\n"
+                f"Seitenmeldung: {result[:500]}"
+            ),
+            "allowed_mentions": {"parse": []},
+        },
+        name="LOGS",
+    )
+
 
 # --------------------------------------------------------------------------- #
 # Main
@@ -325,6 +342,10 @@ def main() -> int:
         return 1
 
     log(f"Vote erfolgreich. Seitenmeldung: {result}")
+    return 0
+  
+    log(f"Vote erfolgreich. Seitenmeldung: {result}")
+    notify_success(result)
     return 0
 
 
