@@ -342,12 +342,8 @@ def main() -> int:
         return 1
 
     log(f"Vote erfolgreich. Seitenmeldung: {result}")
-    return 0
-  
-    log(f"Vote erfolgreich. Seitenmeldung: {result}")
     notify_success(result)
     return 0
-
-
+  
 if __name__ == "__main__":
     sys.exit(main())
